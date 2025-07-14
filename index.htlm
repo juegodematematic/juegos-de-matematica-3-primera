@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Juego Matemático</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: Arial, sans-serif;
+            background: url('https://img.freepik.com/vector-premium/fondo-educacion-escolar-material-escolar-lapices-cuadernos_1639-12188.jpg') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .question, .options, .result, .lives, .timer {
+            display: none;
+        }
+        .question {
+            font-size: 24px;
+            margin: 20px 0;
+            white-space: pre-line;
+        }
+        .options button {
+            width: 100%;
+            margin: 10px 0;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 10px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+        .options button:hover:enabled {
+            background-color: #45a049;
+        }
+        .options button:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+        .lives, .timer {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        #start-btn, #restart-btn {
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #start-btn:hover, #restart-btn:hover {
+            background-color: #0056b3;
+        }
+        #restart-btn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Juego Matemático</h1>
+        <button id="start-btn">Comenzar Juego</button>
+        <button id="restart-btn">Volver a Jugar</button>
+        <div class="status-bar">
+            <div id="level-display">Nivel: 1</div>
+            <div id="score-display">Puntos: 0</div>
+        </div>
+        <div class="lives" id="lives">❤️❤️❤️</div>
+        <div class="timer" id="timer">Tiempo: 10s</div>
+        <div class="question" id="question"></div>
+        <div class="options">
+            <button id="optionA"></button>
+            <button id="optionB"></button>
+            <button id="optionC"></button>
+        </div>
+        <div class="result" id="result"></div>
+    </div>
+
+    <audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-4.mp3"></audio>
+    <audio id="wrongSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+
+    <script>
+        let level = 1;
+        let correctAnswer = 0;
+        let lives = 3;
+        let score = 0;
+        let timer;
+        let timeLeft = 10;
+
+        const optionA = document.getElementById('optionA');
+        const optionB = document.getElementById('optionB');
+        const optionC = document.getElementById('optionC');
+
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const livesDiv = document.getElementById('lives');
+        const timerDiv = document.getElementById('timer');
+        const questionDiv = document.getElementById('question');
+        const optionsDiv = document.querySelector('.options');
+        const resultDiv = document.getElementById('result');
+        const levelDisplay = document.getElementById('level-display');
+        const scoreDisplay = document.getElementById('score-display');
+
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', () => {
+            location.reload(); // recarga para reiniciar todo desde cero
+        });
+
+        function startGame() {
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'none';
+            livesDiv.innerText = '❤️❤️❤️';
+            livesDiv.style.display = 'block';
+            timerDiv.style.display = 'block';
+            questionDiv.style.display = 'block';
+            optionsDiv.style.display = 'block';
+            resultDiv.style.display = 'block';
+            levelDisplay.style.display = 'flex';
+            scoreDisplay.style.display = 'flex';
+
+            level = 1;
+            lives = 3;
+            score = 0;
+            updateDisplays();
+            generateQuestion();
+        }
+
+        function updateDisplays() {
+            levelDisplay.innerText = `Nivel: ${level}`;
+            scoreDisplay.innerText = `Puntos: ${score}`;
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timeLeft = 10;
+            timerDiv.innerText = `Tiempo: ${timeLeft}s`;
+            timer = setInterval(() => {
+                timeLeft--;
+                timerDiv.innerText = `Tiempo: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    loseLife();
+                }
+            }, 1000);
+        }
+
+        function disableOptions() {
+            optionA.disabled = true;
+            optionB.disabled = true;
+            optionC.disabled = true;
+        }
+
+        function enableOptions() {
+            optionA.disabled = false;
+            optionB.disabled = false;
+            optionC.disabled = false;
+        }
+
+        function loseLife() {
+            clearInterval(timer);
+            lives--;
+            livesDiv.innerText = lives > 0 ? '❤️'.repeat(lives) : '💔';
+            if (lives <= 0) {
+                questionDiv.innerText = '¡Perdiste todas las vidas!';
+                optionsDiv.innerHTML = '';
+                resultDiv.innerText = '';
+                disableOptions();
+                restartBtn.style.display = 'inline-block';
+                return;
+            }
+            resultDiv.innerText = 'Se te acabó el tiempo. Pierdes una vida.';
+            generateQuestion();
+        }
+
+        function generateWrongAnswers(correct) {
+            const wrongs = new Set();
+            while (wrongs.size < 2) {
+                let val = correct + (Math.floor(Math.random() * 10) + 1) * (Math.random() < 0.5 ? 1 : -1);
+                if (val !== correct && val >= 0) {
+                    wrongs.add(val);
+                }
+            }
+            return Array.from(wrongs);
+        }
+
+        function generateQuestion() {
+            enableOptions();
+            let num1, num2, question, answer;
+            if (level <= 10) {
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                question = `¿Cuánto es ${num1} + ${num2}?`;
+                answer = num1 + num2;
+            } else if (level <= 15) {
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+                question = `¿Cuánto es ${num1} x ${num2}?`;
+                answer = num1 * num2;
+            } else if (level <= 20) {
+                num1 = Math.floor(Math.random() * 50) + 1;
+                num2 = Math.floor(Math.random() * 9) + 1;
+                question = `¿Cuánto es ${num1} ÷ ${num2} (redondea hacia abajo)?`;
+                answer = Math.floor(num1 / num2);
+            } else if (level <= 25) {
+                num1 = Math.floor(Math.random() * 100) + 1;
+                num2 = Math.floor(Math.random() * 20) + 1;
+                question = `¿Cuánto es el ${num2}% de ${num1}? (redondea)`;
+                answer = Math.round((num1 * num2) / 100);
+            }
+
+            correctAnswer = answer;
+            const wrongOptions = generateWrongAnswers(answer);
+            const options = shuffle([answer, wrongOptions[0], wrongOptions[1]]);
+
+            questionDiv.innerText = `Nivel ${level}:\n${question}`;
+            optionA.innerText = `A: ${options[0]}`;
+            optionB.innerText = `B: ${options[1]}`;
+            optionC.innerText = `C: ${options[2]}`;
+            resultDiv.innerText = '';
+            updateDisplays();
+            startTimer();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function checkAnswer(selected) {
+            clearInterval(timer);
+            const selectedValue = parseInt(selected.innerText.split(': ')[1]);
+            if (selectedValue === correctAnswer) {
+                document.getElementById('correctSound').play();
+                resultDiv.innerText = '¡Correcto!';
+                level++;
+                score += 10; // suma 10 puntos por respuesta correcta
+                updateDisplays();
+                if (level > 25) {
+                    questionDiv.innerText = '¡Felicidades! ¡Terminaste el juego! 🎉';
+                    optionsDiv.innerHTML = '';
+                    disableOptions();
+                    restartBtn.style.display = 'inline-block';
+                    return;
+                }
+                setTimeout(() => {
+                    generateQuestion();
+                }, 1000);
+            } else {
+                document.getElementById('wrongSound').play();
+                resultDiv.innerText = 'Respuesta incorrecta.';
+                loseLife();
+            }
+        }
+
+        optionA.addEventListener('click', () => checkAnswer(optionA));
+        optionB.addEventListener('click', () => checkAnswer(optionB));
+        optionC.addEventListener('click', () => checkAnswer(optionC));
+    </script>
+</body>
+</html>
